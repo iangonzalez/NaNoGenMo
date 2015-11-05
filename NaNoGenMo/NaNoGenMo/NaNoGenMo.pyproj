@@ -23,6 +23,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="NaNoGenMo.py" />
+    <Compile Include="randsent.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="sample_grammar.txt" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
