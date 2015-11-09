@@ -1,5 +1,6 @@
 1 ROOT	S
 
+# This grammar produces extremely confrontational replies for Socrates' rhetorical questions.
 
 1 S	Sounds like BSTOKEN , Socrates.
 1 S	You have to be fucking kidding me with this BSTOKEN .
