@@ -1,4 +1,5 @@
 ﻿# Random sentence generator using CFGs
+# Based on code written for Yale's LING 227, a computational linguistics course.
 
 import sys
 import random

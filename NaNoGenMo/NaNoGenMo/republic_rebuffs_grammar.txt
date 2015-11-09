@@ -1,0 +1,26 @@
+1 ROOT	S
+
+
+1 S	Sounds like BSTOKEN , Socrates.
+1 S	You have to be fucking kidding me with this BSTOKEN .
+1 S Are you smoking DRUGTOKEN ?
+
+2 BSTOKEN	bullshit
+2 BSTOKEN	malarkey
+2 BSTOKEN	flim-flam
+2 BSTOKEN	drivel
+2 BSTOKEN	poppycock
+1 BSTOKEN	FOULADJ BSTOKEN
+
+
+3 FOULADJ	fucking
+3 FOULADJ	goddamn
+3 FOULADJ	dumbass
+
+
+1 DRUGTOKEN	crack
+1 DRUGTOKEN	herowine
+1 DRUGTOKEN	heroin
+1 DRUGTOKEN	quaaludes
+1 DRUGTOKEN	legal tobacco products
+1 DRUGTOKEN	the ground up dried testicles of a gnu

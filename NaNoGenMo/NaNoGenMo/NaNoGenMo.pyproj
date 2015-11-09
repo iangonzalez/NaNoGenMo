@@ -27,6 +27,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="sample_grammar.txt" />
+    <Content Include="data\the_republic.txt" />
+    <Content Include="republic_rebuffs_grammar.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="data\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
