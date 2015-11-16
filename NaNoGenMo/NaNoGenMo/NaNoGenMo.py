@@ -4,6 +4,8 @@ import randsent
 import re
 import nltk.data
 import random
+from collections import defaultdict
+from nltk.tokenize import RegexpTokenizer
 
 
 class LanguageGenerator:
@@ -11,6 +13,7 @@ class LanguageGenerator:
         self.corpus_file = None
         self.corpus_string = None
         self.gen_sentences = None
+        self.markov_model = None
 
     def readCorpusFile(self, corpus_file):
         # read the corpus of text from a file
@@ -52,6 +55,25 @@ class LanguageGenerator:
         # output the sentences to output1.txt
         with open(outfile, "w") as outf:
             outf.write("\n".join(self.gen_sentences))
+
+    def trainMarkovChain(self, n = 1):
+        self.markov_model = defaultdict(defaultdict(0))
+        sentences = self.sentenceTokenizeCorpus()
+
+        word_tokenizer = RegexpTokenizer(r"\w+")
+
+        for sentence in sentences:
+            words = word_tokenizer.tokenize(sentence)
+            last_word = None
+
+            for word in words:
+                if last_word is not None:
+                    markov_model[last_word][word] += 1
+                last_word = word
+
+
+
+
 
 
 if __name__ == '__main__':
