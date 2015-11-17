@@ -14,6 +14,7 @@ class LanguageGenerator:
         self.corpus_string = None
         self.gen_sentences = None
         self.markov_model = None
+        self.ngram_degree = None
 
     def readCorpusFile(self, corpus_file):
         # read the corpus of text from a file
@@ -58,6 +59,8 @@ class LanguageGenerator:
 
 
     def trainMarkovChain(self, n = 1):
+
+        self.ngram_degree = n
       
         self.markov_model = defaultdict(lambda : defaultdict(int))
         sentences = self.sentenceTokenizeCorpus()
@@ -70,16 +73,20 @@ class LanguageGenerator:
 
         for sentence in sentences:
             words = word_tokenizer.tokenize(sentence)
-            last_word = "#"
+            last_word_list = ["#"] * n
 
             for word in words:
-                if last_word is not None:
-                    self.markov_model[last_word][word] += 1
-                last_word = word
+                last_token = " ".join(last_word_list)
+                
+                self.markov_model[last_token][word] += 1
+                
+                last_word_list.append(word)
+                last_word_list = last_word_list[1:]
 
-            self.markov_model[last_word]["#"] += 1
+            last_token = " ".join(last_word_list)
+            self.markov_model[last_token]["#"] += 1
 
-    def genMarkovSentences(self, n = 1):
+    def genMarkovSentences(self, num_sentences = 1):
         if self.markov_model is None:
             return None
            
@@ -87,10 +94,12 @@ class LanguageGenerator:
 
         self.gen_sentences = []
         
-        for i in range(n):
-            cur_token = "#"
+        for i in range(num_sentences):
+            cur_token_list = ["#"] * self.ngram_degree
             sentence = []
             while True:
+                print(sentence, len(sentence))
+                cur_token = " ".join(cur_token_list)
                 sum_freqs = sum([self.markov_model[cur_token][key] for key in self.markov_model[cur_token]])
                 rand_choice = random.randint(0, sum_freqs)
                 
@@ -102,11 +111,14 @@ class LanguageGenerator:
                         sentence.append(key)
                         break
 
-                cur_token = key
-                if key.startswith("#"):
-                    break
+                cur_token_list.append(key)
+                cur_token_list = cur_token_list[1:]
 
-            self.gen_sentences.append(" ".join(sentence))
+                if key.startswith("#"):
+                    self.gen_sentences.append(" ".join(sentence))
+                    break
+                elif len(sentence) > 50:
+                    break
 
         return self.gen_sentences
 
@@ -124,11 +136,11 @@ class GeneratorUnitTests:
         langGenerator = LanguageGenerator()
         corpus_file = "data/the_republic.txt"
         langGenerator.readCorpusFile(corpus_file)
-        langGenerator.trainMarkovChain()
-        print(langGenerator.genMarkovSentences(n=1))
+        langGenerator.trainMarkovChain(n=2)
+        print(langGenerator.genMarkovSentences(num_sentences=1))
 
 
 if __name__ == '__main__':
     tester = GeneratorUnitTests()
-    tester.crassifyTest()
+    #tester.crassifyTest()
     tester.markovLanguageTest()
