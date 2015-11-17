@@ -56,31 +56,79 @@ class LanguageGenerator:
         with open(outfile, "w") as outf:
             outf.write("\n".join(self.gen_sentences))
 
+
     def trainMarkovChain(self, n = 1):
-        self.markov_model = defaultdict(defaultdict(0))
+      
+        self.markov_model = defaultdict(lambda : defaultdict(int))
         sentences = self.sentenceTokenizeCorpus()
+        if sentences is None:
+            return None
+
+        print("Training markov model on corpus.")
 
         word_tokenizer = RegexpTokenizer(r"\w+")
 
         for sentence in sentences:
             words = word_tokenizer.tokenize(sentence)
-            last_word = None
+            last_word = "#"
 
             for word in words:
                 if last_word is not None:
-                    markov_model[last_word][word] += 1
+                    self.markov_model[last_word][word] += 1
                 last_word = word
 
+            self.markov_model[last_word]["#"] += 1
+
+    def genMarkovSentences(self, n = 1):
+        if self.markov_model is None:
+            return None
+           
+        print("Generating markov random sentences.")
+
+        self.gen_sentences = []
+        
+        for i in range(n):
+            cur_token = "#"
+            sentence = []
+            while True:
+                sum_freqs = sum([self.markov_model[cur_token][key] for key in self.markov_model[cur_token]])
+                rand_choice = random.randint(0, sum_freqs)
+                
+                # make random weighted choice for next possible words.
+                running_sum = 0
+                for key in self.markov_model[cur_token]:
+                    running_sum += self.markov_model[cur_token][key]
+                    if running_sum >= rand_choice:
+                        sentence.append(key)
+                        break
+
+                cur_token = key
+                if key.startswith("#"):
+                    break
+
+            self.gen_sentences.append(" ".join(sentence))
+
+        return self.gen_sentences
 
 
+class GeneratorUnitTests:
+    def crassifyTest(self):
+        langGenerator = LanguageGenerator()
+        corpus_file = "data/the_republic.txt"
 
+        langGenerator.readCorpusFile(corpus_file)
+        langGenerator.crassifySocraticDialogue()
+        langGenerator.writeOutput("output/output1.txt")
+
+    def markovLanguageTest(self):
+        langGenerator = LanguageGenerator()
+        corpus_file = "data/the_republic.txt"
+        langGenerator.readCorpusFile(corpus_file)
+        langGenerator.trainMarkovChain()
+        print(langGenerator.genMarkovSentences(n=1))
 
 
 if __name__ == '__main__':
-    langGenerator = LanguageGenerator()
-    corpus_file = "data/the_republic.txt"
-
-    langGenerator.readCorpusFile(corpus_file)
-    langGenerator.crassifySocraticDialogue()
-    langGenerator.writeOutput()
-    
+    tester = GeneratorUnitTests()
+    tester.crassifyTest()
+    tester.markovLanguageTest()
