@@ -22,7 +22,7 @@ class LanguageGenerator:
         # read the corpus of text from a file
         with open(corpus_file) as corpus:
             corpus_strings = [line for line in corpus if re.search(r"\S", line)]
-        self.corpus_string = "".join(corpus_strings)
+        self.corpus_string = "".join(corpus_strings).decode("utf-8")
 
     def sentenceTokenizeCorpus(self):
         # tokenize the corpus into sentences using the ntlk.punkt module
@@ -129,7 +129,8 @@ class LanguageGenerator:
         return self.gen_sentences
 
     # cuts a random sentence, then finds a matching sentence to use as an ending to that sentence
-    def sentenceSnipNShuffle(self, num_sentences = 1):
+    # can be passed an optional second set of sentences from a different corpus to use as endings
+    def sentenceSnipNShuffle(self, num_sentences = 1, sentence_set_2 = None):
         sentences = self.corpus_sentences
         if sentences is None:
             sentences = self.sentenceTokenizeCorpus()
@@ -158,7 +159,12 @@ class LanguageGenerator:
             print(joining_word)
 
             # find all candidate sentences that have the joining word (last word of first half)
-            candidate_sents = [sent for sent in sentences if (sent.find(" " + joining_word + " ") != -1 and sent != start_sent_str)]
+            if sentence_set_2 is None:
+                candidate_sents = [sent for sent in sentences if (sent.find(" " + joining_word + " ") != -1 and sent != start_sent_str)]
+            else:
+                # use the passed set of sentences as endings if it exists:
+                candidate_sents = [sent for sent in sentence_set_2 if sent.find(" " + joining_word + " ") != -1]
+                
             if not candidate_sents:
                 continue
             
@@ -197,9 +203,20 @@ class GeneratorUnitTests:
         langGenerator.readCorpusFile("data/the_republic.txt")
         print(langGenerator.sentenceSnipNShuffle())
 
+    def snipSentenceTest2sources(self):
+        langGenerator = LanguageGenerator()
+        langGenerator.readCorpusFile("data/the_republic.txt")
+
+        langGenerator2= LanguageGenerator()
+        langGenerator2.readCorpusFile("data/sherlock_holmes.txt")
+        langGenerator2.sentenceTokenizeCorpus()
+
+        langGenerator.sentenceSnipNShuffle(num_sentences = 1, sentence_set_2 = langGenerator2.corpus_sentences)
+        print(langGenerator.gen_sentences)
+
 if __name__ == '__main__':
     tester = GeneratorUnitTests()
     #tester.crassifyTest()
     #tester.markovLanguageTest()
-    tester.snipSentenceTest()
+    tester.snipSentenceTest2sources()
     
