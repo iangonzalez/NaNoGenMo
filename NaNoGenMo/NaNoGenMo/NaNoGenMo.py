@@ -11,7 +11,7 @@ from nltk.tokenize import RegexpTokenizer
 
 
 class LanguageGenerator:
-    def __init__(self):
+    def __init__(self, file_to_read=None):
         self.corpus_file = None
         self.corpus_string = None
         self.gen_sentences = None
@@ -19,6 +19,11 @@ class LanguageGenerator:
         self.ngram_degree = None
         self.corpus_sentences = None
         self.dialogue_tuples = None
+
+        if file_to_read:
+            self.readCorpusFile(file_to_read)
+
+
 
     def readCorpusFile(self, corpus_file):
         # read the corpus of text from a file
@@ -262,23 +267,64 @@ class GeneratorUnitTests:
             questions = map(lambda tup : tup[0], langGenerator2.dialogue_tuples)
             outf.write("\n".join(questions).encode("utf-8"))
 
+        with open("data/republic_answers.txt", "w") as outf:
+            answers = map(lambda tup : tup[1], langGenerator.dialogue_tuples)
+            outf.write("\n".join(answers).encode("utf-8"))
+
+        with open("data/holmes_answers.txt", "w") as outf:
+            answers = map(lambda tup : tup[1], langGenerator2.dialogue_tuples)
+            outf.write("\n".join(answers).encode("utf-8"))
+
     def dialogueMasherTest(self):
+        # generate mashed questions
         langGenerator = LanguageGenerator()
-        langGenerator.readCorpusFile("data/republic_dialogue.txt")
+        langGenerator.readCorpusFile("data/republic_questions.txt")
         langGenerator.sentenceTokenizeCorpus()
 
         langGenerator2= LanguageGenerator()
-        langGenerator2.readCorpusFile("data/holmes_dialogue.txt")
+        langGenerator2.readCorpusFile("data/holmes_questions.txt")
         langGenerator2.sentenceTokenizeCorpus()
 
         langGenerator.sentenceSnipNShuffle(num_sentences = 1000, sentence_set_2 = langGenerator2.corpus_sentences, preserve_punct = True)
         langGenerator2.sentenceSnipNShuffle(num_sentences = 1000, sentence_set_2 = langGenerator.corpus_sentences, preserve_punct = True)
 
-        langGenerator.writeOutput("outputs/mashed_dialogue.txt")
-        langGenerator2.writeOutput("outputs/mashed_dialogue.txt")
+        langGenerator.writeOutput("outputs/mashed_questions.txt")
+        langGenerator2.writeOutput("outputs/mashed_questions.txt")
+
+        # generate mashed answers
+        langGenerator = LanguageGenerator()
+        langGenerator.readCorpusFile("data/republic_answers.txt")
+        langGenerator.sentenceTokenizeCorpus()
+
+        langGenerator2 = LanguageGenerator()
+        langGenerator2.readCorpusFile("data/holmes_answers.txt")
+        langGenerator2.sentenceTokenizeCorpus()
+
+        langGenerator.sentenceSnipNShuffle(num_sentences = 1000, sentence_set_2 = langGenerator2.corpus_sentences, preserve_punct = True)
+        langGenerator2.sentenceSnipNShuffle(num_sentences = 1000, sentence_set_2 = langGenerator.corpus_sentences, preserve_punct = True)
+
+        langGenerator.writeOutput("outputs/mashed_answers.txt")
+        langGenerator2.writeOutput("outputs/mashed_answers.txt")
 
 
+# weighted random choice from a list of corpuses (lists of sentences or other tokens).
+def randomPickFromCorpuses(corpuses, weights):
+    assert len(corpuses) == len(weights)
+    weightsum = float(sum(weights))
+    weights = [float(wt)/weightsum for wt in weights]
+    weights.sort()
+    #print(weights)
+    choice = random.uniform(0.0, 1.0)
+    runningsum = 0.0
+    for i in range(len(weights)):
+        runningsum += weights[i]
+        if runningsum <= choice:
+            break
+    corpus = corpuses[i]
 
+    return random.choice(corpus)
+
+    
 
 if __name__ == '__main__':
     tester = GeneratorUnitTests()
@@ -288,6 +334,24 @@ if __name__ == '__main__':
         tester.snipSentenceTest2sources()
         tester.dialogueFilterTest()
         tester.dialogueMasherTest()
+    else:
+        # create the final combined dialogue.
+        republic_questions_corp = LanguageGenerator("data/republic_questions.txt").sentenceTokenizeCorpus()
+        holmes_questions_corp = LanguageGenerator("data/holmes_questions.txt").sentenceTokenizeCorpus()
 
-    tester.dialogueFilterTest()
+        republic_answers_corp = LanguageGenerator("data/republic_answers.txt").sentenceTokenizeCorpus()
+        holmes_answers_corp = LanguageGenerator("data/holmes_answers.txt").sentenceTokenizeCorpus()
 
+        mashed_questions_corp = LanguageGenerator("outputs/mashed_questions.txt").sentenceTokenizeCorpus()
+        mashed_answers_corp = LanguageGenerator("outputs/mashed_answers.txt").sentenceTokenizeCorpus()
+
+        question_corps = [republic_questions_corp, holmes_questions_corp, mashed_questions_corp]
+        answer_corps = [republic_answers_corp, holmes_answers_corp, mashed_answers_corp]
+
+        final = []
+        for i in range(1000):
+            final.append(randomPickFromCorpuses(question_corps, [1, 1, 3]))
+            final.append(randomPickFromCorpuses(answer_corps, [1, 1, 3]))
+
+        with open("outputs/holmesXsocrates_draft1.txt", "w") as outf:
+            outf.write("\n".join(final).encode("utf-8"))
