@@ -349,7 +349,7 @@ if __name__ == '__main__':
         answer_corps = [republic_answers_corp, holmes_answers_corp, mashed_answers_corp]
 
         final = []
-        for i in range(1000):
+        for i in range(2000):
             final.append(randomPickFromCorpuses(question_corps, [1, 1, 3]))
             final.append(randomPickFromCorpuses(answer_corps, [1, 1, 3]))
 
