@@ -2,6 +2,7 @@
 
 import randsent
 import re
+import sys
 import math
 import nltk.data
 import random
@@ -17,6 +18,7 @@ class LanguageGenerator:
         self.markov_model = None
         self.ngram_degree = None
         self.corpus_sentences = None
+        self.dialogue_tuples = None
 
     def readCorpusFile(self, corpus_file):
         # read the corpus of text from a file
@@ -32,6 +34,19 @@ class LanguageGenerator:
         sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
         self.corpus_sentences = sent_detector.tokenize(re.sub(r"\n", " ", self.corpus_string))
         return self.corpus_sentences
+
+    def filterSentencesForDialogue(self):
+        # try to find only question+answer dialogue in the corpus
+        if self.corpus_sentences is None:
+            return None
+
+        self.dialogue_tuples = []
+        for i, sent in enumerate(self.corpus_sentences):
+            if "?" in sent:
+                if (not self.dialogue_tuples or sent != self.dialogue_tuples[-1][0]):
+                    self.dialogue_tuples.append((sent, self.corpus_sentences[i+1]))
+
+        return self.dialogue_tuples
 
     def crassifySocraticDialogue(self):
         # needs to generate a copy of sentence list (so as not to modify it unnecessarily)
@@ -59,8 +74,8 @@ class LanguageGenerator:
 
     def writeOutput(self, outfile="outputs/output1.txt"):
         # output the sentences to output1.txt
-        with open(outfile, "w") as outf:
-            outf.write("\n".join(self.gen_sentences))
+        with open(outfile, "w+") as outf:
+            outf.write("\n".join(self.gen_sentences).encode("utf-8"))
 
 
     def trainMarkovChain(self, n = 1):
@@ -130,7 +145,7 @@ class LanguageGenerator:
 
     # cuts a random sentence, then finds a matching sentence to use as an ending to that sentence
     # can be passed an optional second set of sentences from a different corpus to use as endings
-    def sentenceSnipNShuffle(self, num_sentences = 1, sentence_set_2 = None):
+    def sentenceSnipNShuffle(self, num_sentences = 1, sentence_set_2 = None, preserve_punct = False):
         sentences = self.corpus_sentences
         if sentences is None:
             sentences = self.sentenceTokenizeCorpus()
@@ -156,7 +171,6 @@ class LanguageGenerator:
                 continue  # nothing to do if first half is empty
 
             joining_word = first_half[-1]
-            print(joining_word)
 
             # find all candidate sentences that have the joining word (last word of first half)
             if sentence_set_2 is None:
@@ -169,13 +183,27 @@ class LanguageGenerator:
                 continue
             
             # matches the lowest index matching word in the chosen candidate sentence
-            second_sent = word_tokenizer.tokenize(random.choice(candidate_sents))
+            second_sent_str = random.choice(candidate_sents)
+            second_sent = word_tokenizer.tokenize(second_sent_str)
             try:
                 second_half = second_sent[second_sent.index(joining_word)+1:]
             except:
                 continue
 
-            self.gen_sentences.append(" ".join(first_half + second_half))
+            if not preserve_punct:
+                self.gen_sentences.append(" ".join(first_half + second_half))
+            else:
+                idx1 = start_sent_str.find(joining_word) + len(joining_word)
+                while idx1 < len(start_sent_str) and start_sent_str[idx1] != " ":
+                    idx1 += 1
+                first_half = start_sent_str[:idx1]
+                
+                idx2 = second_sent_str.find(joining_word) + len(joining_word)
+                while idx2 < len(second_sent_str) and second_sent_str[idx2] != " ":
+                    idx2 += 1
+
+                second_half = second_sent_str[idx2:]
+                self.gen_sentences.append(first_half + second_half)
 
         return self.gen_sentences
             
@@ -214,9 +242,52 @@ class GeneratorUnitTests:
         langGenerator.sentenceSnipNShuffle(num_sentences = 1, sentence_set_2 = langGenerator2.corpus_sentences)
         print(langGenerator.gen_sentences)
 
+    def dialogueFilterTest(self):
+        langGenerator = LanguageGenerator()
+        langGenerator.readCorpusFile("data/the_republic.txt")
+        langGenerator.sentenceTokenizeCorpus()
+
+        langGenerator2= LanguageGenerator()
+        langGenerator2.readCorpusFile("data/sherlock_holmes.txt")
+        langGenerator2.sentenceTokenizeCorpus()
+
+        langGenerator.filterSentencesForDialogue()
+        langGenerator2.filterSentencesForDialogue()
+
+        with open("data/republic_questions.txt", "w") as outf:
+            questions = map(lambda tup : tup[0], langGenerator.dialogue_tuples)
+            outf.write("\n".join(questions).encode("utf-8"))
+
+        with open("data/holmes_questions.txt", "w") as outf:
+            questions = map(lambda tup : tup[0], langGenerator2.dialogue_tuples)
+            outf.write("\n".join(questions).encode("utf-8"))
+
+    def dialogueMasherTest(self):
+        langGenerator = LanguageGenerator()
+        langGenerator.readCorpusFile("data/republic_dialogue.txt")
+        langGenerator.sentenceTokenizeCorpus()
+
+        langGenerator2= LanguageGenerator()
+        langGenerator2.readCorpusFile("data/holmes_dialogue.txt")
+        langGenerator2.sentenceTokenizeCorpus()
+
+        langGenerator.sentenceSnipNShuffle(num_sentences = 1000, sentence_set_2 = langGenerator2.corpus_sentences, preserve_punct = True)
+        langGenerator2.sentenceSnipNShuffle(num_sentences = 1000, sentence_set_2 = langGenerator.corpus_sentences, preserve_punct = True)
+
+        langGenerator.writeOutput("outputs/mashed_dialogue.txt")
+        langGenerator2.writeOutput("outputs/mashed_dialogue.txt")
+
+
+
+
 if __name__ == '__main__':
     tester = GeneratorUnitTests()
-    #tester.crassifyTest()
-    #tester.markovLanguageTest()
-    tester.snipSentenceTest2sources()
-    
+    if "-test" in sys.argv:
+        tester.crassifyTest()
+        tester.markovLanguageTest()
+        tester.snipSentenceTest2sources()
+        tester.dialogueFilterTest()
+        tester.dialogueMasherTest()
+
+    tester.dialogueFilterTest()
+
